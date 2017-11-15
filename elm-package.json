@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
     "summary": "AVL Meeting Productivity Enhancement Tool",
-    "repository": "https://github.com/user/project.git",
+    "repository": "https://github.com/tljubej/AMPET.git",
     "license": "BSD3",
     "source-directories": [
         "."
