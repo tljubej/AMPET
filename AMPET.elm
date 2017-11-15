@@ -31,6 +31,7 @@ type alias Entry =
 
 type alias Model =
     { entries : List Entry
+    , templates : List String
     , lastId : Id
     , timerStarted : Bool
     , timer : Time
@@ -39,7 +40,8 @@ type alias Model =
 
 
 type Msg
-    = AddEntry String String String
+    = AddEntry String Time
+    | NoOp
     | Tick Time
     | RemoveEntry Id
     | DismissEntry
@@ -52,7 +54,22 @@ type Msg
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model [] 0 False 0 (Inputs "" "" ""), Cmd.none )
+    ( Model []
+        [ "Toni"
+        , "Tomislav"
+        , "Slaven"
+        , "Ivica"
+        , "Mario"
+        , "Ivan"
+        , "Michael"
+        , "Dietmar"
+        ]
+        0
+        False
+        0
+        (Inputs "" "" "")
+    , Cmd.none
+    )
 
 
 subscriptions : Model -> Sub Msg
@@ -93,32 +110,35 @@ set lens val model =
     compose lens1 lens2
 
 
+deserializeTime : String -> String -> Maybe Time
+deserializeTime minutes seconds =
+    let
+        realMin =
+            String.toInt minutes
+
+        realSec =
+            String.toInt seconds
+    in
+        case ( realMin, realSec ) of
+            ( Ok mins, Ok secs ) ->
+                toFloat mins * minute + toFloat secs * second |> Just
+
+            _ ->
+                Nothing
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        AddEntry name minutes seconds ->
+        NoOp ->
+            model ! []
+
+        AddEntry name time ->
             let
                 newId =
                     model.lastId + 1
-
-                realMin =
-                    String.toInt minutes
-
-                realSec =
-                    String.toInt seconds
             in
-                case ( realMin, realSec ) of
-                    ( Ok mins, Ok secs ) ->
-                        { model
-                            | lastId = newId
-                            , entries =
-                                model.entries
-                                    ++ [ ( model.lastId, name, toFloat mins * minute + toFloat secs * second ) ]
-                        }
-                            ! []
-
-                    _ ->
-                        model ! []
+                { model | lastId = newId, entries = model.entries ++ [ ( model.lastId, name, time ) ] } ! []
 
         RemoveEntry id ->
             { model | entries = List.filter (\( oid, _, _ ) -> id /= oid) model.entries } ! []
@@ -159,6 +179,21 @@ update msg model =
             set (modelInputsLens >=> inputSecondsLens) val model ! []
 
 
+viewTemplate : String -> ( String, Html Msg )
+viewTemplate name =
+    ( name
+    , tr []
+        [ td [] [ text name ]
+        , td []
+            [ button [ AddEntry name Time.minute |> onClick ] [ text "1 minute" ]
+            , button [ AddEntry name (Time.minute * 2) |> onClick ] [ text "2 minutes" ]
+            , button [ AddEntry name (Time.minute * 5) |> onClick ] [ text "5 minutes" ]
+            , button [ AddEntry name (Time.minute * 10) |> onClick ] [ text "10 minutes" ]
+            ]
+        ]
+    )
+
+
 viewEntry : Entry -> ( String, Html Msg )
 viewEntry ( id, name, time ) =
     let
@@ -194,24 +229,37 @@ viewEntry ( id, name, time ) =
 
 view : Model -> Html Msg
 view model =
-    div [ style [ ( "width", "50%" ), ( "margin", "0 auto" ) ] ]
-        [ h2 [] [ text "Enter new discussion slot:" ]
-        , div [ class "row" ]
-            [ button [ onClick StartTimer, style [ ( "margin-right", "5px" ) ] ] [ text "Start Timer" ]
-            , button [ onClick StopTimer, class "button button-outline", style [ ( "margin-right", "15px" ) ] ] [ text "Stop Timer" ]
-            , button [ onClick DismissEntry, style [ ( "width", "200px" ) ] ] [ text "Finish Slot" ]
+    div [ class "row" ]
+        [ div [ class "column" ]
+            [ h2 [] [ text "Enter new discussion slot:" ]
+            , div [ class "row" ]
+                [ button [ onClick StartTimer, style [ ( "margin-right", "5px" ) ] ] [ text "Start Timer" ]
+                , button [ onClick StopTimer, class "button button-outline", style [ ( "margin-right", "15px" ) ] ] [ text "Stop Timer" ]
+                , button [ onClick DismissEntry, style [ ( "width", "200px" ) ] ] [ text "Finish Slot" ]
+                ]
+            , div [ class "row" ]
+                [ label [ for "nameField", style [ ( "margin-right", "5px" ) ] ] [ text "Name" ]
+                , input [ id "nameField", placeholder "Slaven", onInput ChangeNameField, style [ ( "margin-right", "5px" ) ] ] []
+                , label [ for "minutesField", style [ ( "margin-right", "5px" ) ] ] [ text "Minutes" ]
+                , input [ id "minutesField", type_ "number", placeholder "2", onInput ChangeMinutesField, style [ ( "margin-right", "5px" ) ] ] []
+                , label [ for "secondsField", style [ ( "margin-right", "5px" ) ] ] [ text "Seconds" ]
+                , input [ id "secondsField", type_ "number", placeholder "0", onInput ChangeSecondsField, style [ ( "margin-right", "5px" ) ] ] []
+                , button
+                    [ onClick
+                        (case deserializeTime model.inputs.minutes model.inputs.seconds of
+                            Just time ->
+                                AddEntry model.inputs.name time
+
+                            Nothing ->
+                                NoOp
+                        )
+                    , style [ ( "margin-right", "5px" ) ]
+                    ]
+                    [ text "Add" ]
+                ]
+            , h2 [] [ text "Time Slots:" ]
             ]
-        , div [ class "row" ]
-            [ label [ for "nameField", style [ ( "margin-right", "5px" ) ] ] [ text "Name" ]
-            , input [ id "nameField", placeholder "Slaven", onInput ChangeNameField, style [ ( "margin-right", "5px" ) ] ] []
-            , label [ for "minutesField", style [ ( "margin-right", "5px" ) ] ] [ text "Minutes" ]
-            , input [ id "minutesField", type_ "number", placeholder "2", onInput ChangeMinutesField, style [ ( "margin-right", "5px" ) ] ] []
-            , label [ for "secondsField", style [ ( "margin-right", "5px" ) ] ] [ text "Seconds" ]
-            , input [ id "secondsField", type_ "number", placeholder "0", onInput ChangeSecondsField, style [ ( "margin-right", "5px" ) ] ] []
-            , button [ AddEntry model.inputs.name model.inputs.minutes model.inputs.seconds |> onClick, style [ ( "margin-right", "5px" ) ] ] [ text "Add" ]
-            ]
-        , h2 [] [ text "Time Slots:" ]
-        , table []
+        , div [class "column"] [table []
             [ thead []
                 [ th [] [ text "Name" ]
                 , th [] [ text "Time Left" ]
@@ -219,5 +267,5 @@ view model =
             , Keyed.node "tbody"
                 []
                 (List.map (\entry -> viewEntry entry) model.entries)
-            ]
+            ]]
         ]
