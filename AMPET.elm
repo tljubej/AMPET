@@ -22,6 +22,7 @@ type alias Inputs =
     { name : String
     , minutes : String
     , seconds : String
+    , templateName : String
     }
 
 
@@ -41,6 +42,7 @@ type alias Model =
 
 type Msg
     = AddEntry String Time
+    | AddTemplate String
     | NoOp
     | Tick Time
     | RemoveEntry Id
@@ -67,7 +69,7 @@ init =
         0
         False
         0
-        (Inputs "" "" "")
+        (Inputs "" "" "" "")
     , Cmd.none
     )
 
@@ -140,6 +142,9 @@ update msg model =
             in
                 { model | lastId = newId, entries = model.entries ++ [ ( model.lastId, name, time ) ] } ! []
 
+        AddTemplate name ->
+            {model | templates = model.templates ++ [name]} ! []
+
         RemoveEntry id ->
             { model | entries = List.filter (\( oid, _, _ ) -> id /= oid) model.entries } ! []
 
@@ -179,16 +184,21 @@ update msg model =
             set (modelInputsLens >=> inputSecondsLens) val model ! []
 
 
+templateButtonStyle : Attribute a
+templateButtonStyle =
+    style [ ( "margin-right", "5px" ), ( "width", "100px" ), ( "padding", "0px 0px 0px 0px" ) ]
+
+
 viewTemplate : String -> ( String, Html Msg )
 viewTemplate name =
     ( name
     , tr []
         [ td [] [ text name ]
         , td []
-            [ button [ AddEntry name Time.minute |> onClick ] [ text "1 minute" ]
-            , button [ AddEntry name (Time.minute * 2) |> onClick ] [ text "2 minutes" ]
-            , button [ AddEntry name (Time.minute * 5) |> onClick ] [ text "5 minutes" ]
-            , button [ AddEntry name (Time.minute * 10) |> onClick ] [ text "10 minutes" ]
+            [ button [ AddEntry name Time.minute |> onClick, templateButtonStyle ] [ text "1 minute" ]
+            , button [ AddEntry name (Time.minute * 2) |> onClick, templateButtonStyle ] [ text "2 minutes" ]
+            , button [ AddEntry name (Time.minute * 5) |> onClick, templateButtonStyle ] [ text "5 minutes" ]
+            , button [ AddEntry name (Time.minute * 10) |> onClick, templateButtonStyle ] [ text "10 minutes" ]
             ]
         ]
     )
@@ -237,6 +247,19 @@ view model =
                 , button [ onClick StopTimer, class "button button-outline", style [ ( "margin-right", "15px" ) ] ] [ text "Stop Timer" ]
                 , button [ onClick DismissEntry, style [ ( "width", "200px" ) ] ] [ text "Finish Slot" ]
                 ]
+            , div [class "row"]
+            [
+                label [ for "templateNameField", style [ ( "margin-right", "5px" ) ] ] [ text "Name" ]
+            ]
+            , table []
+                [ thead []
+                    [ th [] [ text "Template name" ]
+                    , th [] [ text "Preset times" ]
+                    ]
+                , Keyed.node "tbody"
+                    []
+                    (List.map viewTemplate model.templates)
+                ]
             , div [ class "row" ]
                 [ label [ for "nameField", style [ ( "margin-right", "5px" ) ] ] [ text "Name" ]
                 , input [ id "nameField", placeholder "Slaven", onInput ChangeNameField, style [ ( "margin-right", "5px" ) ] ] []
@@ -259,13 +282,15 @@ view model =
                 ]
             , h2 [] [ text "Time Slots:" ]
             ]
-        , div [class "column"] [table []
-            [ thead []
-                [ th [] [ text "Name" ]
-                , th [] [ text "Time Left" ]
+        , div [ class "column" ]
+            [ table []
+                [ thead []
+                    [ th [] [ text "Name" ]
+                    , th [] [ text "Time Left" ]
+                    ]
+                , Keyed.node "tbody"
+                    []
+                    (List.map viewEntry model.entries)
                 ]
-            , Keyed.node "tbody"
-                []
-                (List.map (\entry -> viewEntry entry) model.entries)
-            ]]
+            ]
         ]
