@@ -1,5 +1,6 @@
 module AMPET exposing (..)
 
+import Audio
 import List
 import Monocle.Lens exposing (..)
 import Html exposing (..)
@@ -24,6 +25,25 @@ type alias Inputs =
     , seconds : String
     , templateName : String
     }
+
+
+firstBell : Time
+firstBell =
+    30 * Time.second
+
+
+annoyingTime : Time
+annoyingTime =
+    -10 * Time.second
+
+
+bellSound : String
+bellSound =
+    "sounds/bell.mp3"
+
+annoyingSound : String
+annoyingSound =
+    "sounds/annoying.mp3"
 
 
 type alias Entry =
@@ -173,7 +193,19 @@ update msg model =
             in
                 case model.entries of
                     ( id, name, time ) :: rest ->
-                        { newModel | entries = ( id, name, time - Time.second ) :: rest } ! []
+                        let
+                            newTime =
+                                time - Time.second
+
+                            cmds =
+                                if newTime == firstBell || newTime == 0 then
+                                    [ Audio.playAudio bellSound ]
+                                else if newTime <= annoyingTime then
+                                    [ Audio.playAudio annoyingSound ]
+                                else
+                                    []
+                        in
+                            { newModel | entries = ( id, name, newTime ) :: rest } ! cmds
 
                     [] ->
                         newModel ! []
