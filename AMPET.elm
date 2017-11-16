@@ -251,8 +251,18 @@ viewTemplate name =
     )
 
 
-viewEntry : Entry -> ( String, Html Msg )
-viewEntry ( id, name, time ) =
+viewEntries : Model -> List ( String, Html Msg )
+viewEntries model =
+    case model.entries of
+        [] ->
+            []
+
+        e :: es ->
+            (viewEntry model.timerStarted True) e :: List.map (viewEntry False False) es
+
+
+viewEntry : Bool -> Bool -> Entry -> ( String, Html Msg )
+viewEntry timerStarted first ( id, name, time ) =
     let
         minutes =
             if time >= 0 then
@@ -274,12 +284,26 @@ viewEntry ( id, name, time ) =
                 minSecText
             else
                 "-" ++ minSecText
+
+        tdStyle =
+            if first then
+                style
+                    [ ( "border", "1px solid" )
+                    , ( "border-color"
+                      , if timerStarted && inSeconds time < 30 then
+                            "red"
+                        else
+                            "white"
+                      )
+                    ]
+            else
+                style []
     in
         ( toString id
         , tr []
-            [ td [] [ text name ]
-            , td [] [ text timeText ]
-            , td [] [ button [ RemoveEntry id |> onClick, class "button button-clear" ] [ text "Remove" ] ]
+            [ td [ tdStyle ] [ text name ]
+            , td [ tdStyle ] [ text timeText ]
+            , td [ tdStyle ] [ button [ RemoveEntry id |> onClick, class "button button-clear" ] [ text "Remove" ] ]
             ]
         )
 
@@ -312,7 +336,7 @@ view model =
                 [ class "row"
                 , style
                     [ ( "border"
-                      , "1px solid black"
+                      , "1px solid"
                       )
                     , ( "border-color"
                       , if isTimeValid model then
@@ -351,7 +375,7 @@ view model =
                     ]
                 , Keyed.node "tbody"
                     []
-                    (List.map viewEntry model.entries)
+                    (viewEntries model)
                 ]
             ]
         ]
