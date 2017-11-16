@@ -52,6 +52,7 @@ type Msg
     | ChangeNameField String
     | ChangeMinutesField String
     | ChangeSecondsField String
+    | ChangeTemplateNameField String
 
 
 init : ( Model, Cmd Msg )
@@ -102,6 +103,11 @@ inputSecondsLens =
     Lens .seconds (\sn a -> { a | seconds = sn })
 
 
+inputTemplateNameLens : Lens Inputs String
+inputTemplateNameLens =
+    Lens .templateName (\sn a -> { a | templateName = sn })
+
+
 set : Lens a b -> b -> a -> a
 set lens val model =
     modify lens (\_ -> val) model
@@ -143,7 +149,7 @@ update msg model =
                 { model | lastId = newId, entries = model.entries ++ [ ( model.lastId, name, time ) ] } ! []
 
         AddTemplate name ->
-            {model | templates = model.templates ++ [name]} ! []
+            { model | templates = model.templates ++ [ name ] } ! []
 
         RemoveEntry id ->
             { model | entries = List.filter (\( oid, _, _ ) -> id /= oid) model.entries } ! []
@@ -182,6 +188,9 @@ update msg model =
 
         ChangeSecondsField val ->
             set (modelInputsLens >=> inputSecondsLens) val model ! []
+
+        ChangeTemplateNameField val ->
+            set (modelInputsLens >=> inputTemplateNameLens) val model ! []
 
 
 templateButtonStyle : Attribute a
@@ -247,10 +256,11 @@ view model =
                 , button [ onClick StopTimer, class "button button-outline", style [ ( "margin-right", "15px" ) ] ] [ text "Stop Timer" ]
                 , button [ onClick DismissEntry, style [ ( "width", "200px" ) ] ] [ text "Finish Slot" ]
                 ]
-            , div [class "row"]
-            [
-                label [ for "templateNameField", style [ ( "margin-right", "5px" ) ] ] [ text "Name" ]
-            ]
+            , div [ class "row" ]
+                [ label [ for "templateNameField", style [ ( "margin-right", "5px" ) ] ] [ text "Name" ]
+                , input [ id "templateNameField", placeholder "Slaven", onInput ChangeTemplateNameField, style [ ( "margin-right", "5px" ) ] ] []
+                , button [ AddTemplate model.inputs.templateName |> onClick ] [text "Add Template"]
+                ]
             , table []
                 [ thead []
                     [ th [] [ text "Template name" ]
