@@ -57,20 +57,13 @@ type Msg
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model []
-        [ "Toni"
-        , "Tomislav"
-        , "Slaven"
-        , "Ivica"
-        , "Mario"
-        , "Ivan"
-        , "Michael"
-        , "Dietmar"
-        ]
-        0
-        False
-        0
-        (Inputs "" "" "" "")
+    ( { entries = []
+      , templates = []
+      , lastId = 0
+      , timerStarted = False
+      , timer = 0
+      , inputs = (Inputs "Tomislav" "1" "0" "Tomislav voli zelje")
+      }
     , Cmd.none
     )
 
@@ -129,10 +122,23 @@ deserializeTime minutes seconds =
     in
         case ( realMin, realSec ) of
             ( Ok mins, Ok secs ) ->
-                toFloat mins * minute + toFloat secs * second |> Just
+                if mins >= 0 && secs >= 0 then
+                    toFloat mins * minute + toFloat secs * second |> Just
+                else
+                    Nothing
 
             _ ->
                 Nothing
+
+
+isTimeValid : Model -> Bool
+isTimeValid model =
+    case deserializeTime model.inputs.minutes model.inputs.seconds of
+        Nothing ->
+            False
+
+        _ ->
+            True
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -259,7 +265,7 @@ view model =
             , div [ class "row" ]
                 [ label [ for "templateNameField", style [ ( "margin-right", "5px" ) ] ] [ text "Name" ]
                 , input [ id "templateNameField", placeholder "Slaven", onInput ChangeTemplateNameField, style [ ( "margin-right", "5px" ) ] ] []
-                , button [ AddTemplate model.inputs.templateName |> onClick ] [text "Add Template"]
+                , button [ AddTemplate model.inputs.templateName |> onClick ] [ text "Add Template" ]
                 ]
             , table []
                 [ thead []
@@ -270,11 +276,24 @@ view model =
                     []
                     (List.map viewTemplate model.templates)
                 ]
-            , div [ class "row" ]
+            , div
+                [ class "row"
+                , style
+                    [ ( "border"
+                      , "1px solid black"
+                      )
+                    , ( "border-color"
+                      , if isTimeValid model then
+                            "white"
+                        else
+                            "red"
+                      )
+                    ]
+                ]
                 [ label [ for "nameField", style [ ( "margin-right", "5px" ) ] ] [ text "Name" ]
-                , input [ id "nameField", placeholder "Slaven", onInput ChangeNameField, style [ ( "margin-right", "5px" ) ] ] []
+                , input [ id "nameField", placeholder "Tomislav", onInput ChangeNameField, style [ ( "margin-right", "5px" ) ] ] []
                 , label [ for "minutesField", style [ ( "margin-right", "5px" ) ] ] [ text "Minutes" ]
-                , input [ id "minutesField", type_ "number", placeholder "2", onInput ChangeMinutesField, style [ ( "margin-right", "5px" ) ] ] []
+                , input [ id "minutesField", type_ "number", placeholder "1", onInput ChangeMinutesField, style [ ( "margin-right", "5px" ) ] ] []
                 , label [ for "secondsField", style [ ( "margin-right", "5px" ) ] ] [ text "Seconds" ]
                 , input [ id "secondsField", type_ "number", placeholder "0", onInput ChangeSecondsField, style [ ( "margin-right", "5px" ) ] ] []
                 , button
