@@ -60,19 +60,25 @@ type alias Model =
     }
 
 
+type MsgEntry
+    = Add String Time
+    | Remove Id
+    | Dismiss
+
+type MsgChangeField
+    = Name String
+    | TemplateName String
+    | Minutes String
+    | Seconds String
+
 type Msg
-    = AddEntry String Time
-    | AddTemplate String
-    | NoOp
-    | Tick Time
-    | RemoveEntry Id
-    | DismissEntry
+    = AddTemplate String
     | StartTimer
     | StopTimer
-    | ChangeNameField String
-    | ChangeMinutesField String
-    | ChangeSecondsField String
-    | ChangeTemplateNameField String
+    | Tick Time
+    | ChangeEntry MsgEntry
+    | ChangeField MsgChangeField
+    | NoOp
 
 
 init : ( Model, Cmd Msg )
@@ -164,21 +170,13 @@ isTimeValid model =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        ChangeEntry msgEntry -> updateEntry msgEntry model
+
         NoOp ->
             model ! []
 
-        AddEntry name time ->
-            let
-                newId =
-                    model.lastId + 1
-            in
-                { model | lastId = newId, entries = model.entries ++ [ ( model.lastId, name, time ) ] } ! []
-
         AddTemplate name ->
             { model | templates = model.templates ++ [ name ] } ! []
-
-        RemoveEntry id ->
-            { model | entries = List.filter (\( oid, _, _ ) -> id /= oid) model.entries } ! []
 
         StartTimer ->
             { model | timerStarted = True } ! []
@@ -210,26 +208,46 @@ update msg model =
                     [] ->
                         newModel ! []
 
-        DismissEntry ->
+
+        ChangeField msgChangeField -> updateChangeField msgChangeField model
+
+
+updateChangeField : MsgChangeField -> Model -> ( Model, Cmd Msg )
+updateChangeField msgChangeField model =
+    case msgChangeField of
+        Name val ->
+            set (modelInputsLens >=> inputNameLens) val model ! []
+
+        Minutes val ->
+            set (modelInputsLens >=> inputMinutesLens) val model ! []
+
+        Seconds val ->
+            set (modelInputsLens >=> inputSecondsLens) val model ! []
+
+        TemplateName val ->
+            set (modelInputsLens >=> inputTemplateNameLens) val model ! []
+
+
+updateEntry : MsgEntry -> Model -> ( Model, Cmd Msg )
+updateEntry msg model =
+    case msg of
+        Add name time ->
+            let
+                newId =
+                    model.lastId + 1
+            in
+                { model | lastId = newId, entries = model.entries ++ [ ( model.lastId, name, time ) ] } ! []
+
+        Remove id ->
+            { model | entries = List.filter (\( oid, _, _ ) -> id /= oid) model.entries } ! []
+
+        Dismiss ->
             case model.entries of
                 hd :: rest ->
                     { model | entries = rest } ! []
 
                 [] ->
                     model ! []
-
-        ChangeNameField val ->
-            set (modelInputsLens >=> inputNameLens) val model ! []
-
-        ChangeMinutesField val ->
-            set (modelInputsLens >=> inputMinutesLens) val model ! []
-
-        ChangeSecondsField val ->
-            set (modelInputsLens >=> inputSecondsLens) val model ! []
-
-        ChangeTemplateNameField val ->
-            set (modelInputsLens >=> inputTemplateNameLens) val model ! []
-
 
 templateButtonStyle : Attribute a
 templateButtonStyle =
@@ -242,10 +260,10 @@ viewTemplate name =
     , tr []
         [ td [] [ text name ]
         , td []
-            [ button [ AddEntry name Time.minute |> onClick, templateButtonStyle ] [ text "1 minute" ]
-            , button [ AddEntry name (Time.minute * 2) |> onClick, templateButtonStyle ] [ text "2 minutes" ]
-            , button [ AddEntry name (Time.minute * 5) |> onClick, templateButtonStyle ] [ text "5 minutes" ]
-            , button [ AddEntry name (Time.minute * 10) |> onClick, templateButtonStyle ] [ text "10 minutes" ]
+            [ button [ ChangeEntry (Add name Time.minute) |> onClick, templateButtonStyle ] [ text "1 minute" ]
+            , button [ ChangeEntry (Add name (Time.minute * 2)) |> onClick, templateButtonStyle ] [ text "2 minutes" ]
+            , button [ ChangeEntry (Add name (Time.minute * 5)) |> onClick, templateButtonStyle ] [ text "5 minutes" ]
+            , button [ ChangeEntry (Add name (Time.minute * 10)) |> onClick, templateButtonStyle ] [ text "10 minutes" ]
             ]
         ]
     )
@@ -303,7 +321,7 @@ viewEntry timerStarted first ( id, name, time ) =
         , tr []
             [ td [ tdStyle ] [ text name ]
             , td [ tdStyle ] [ text timeText ]
-            , td [ tdStyle ] [ button [ RemoveEntry id |> onClick, class "button button-clear" ] [ text "Remove" ] ]
+            , td [ tdStyle ] [ button [ ChangeEntry (Remove id) |> onClick, class "button button-clear" ] [ text "Remove" ] ]
             ]
         )
 
@@ -316,11 +334,11 @@ view model =
             , div [ class "row" ]
                 [ button [ onClick StartTimer, style [ ( "margin-right", "5px" ) ] ] [ text "Start Timer" ]
                 , button [ onClick StopTimer, class "button button-outline", style [ ( "margin-right", "15px" ) ] ] [ text "Stop Timer" ]
-                , button [ onClick DismissEntry, style [ ( "width", "200px" ) ] ] [ text "Finish Slot" ]
+                , button [ ChangeEntry Dismiss |> onClick, style [ ( "width", "200px" ) ] ] [ text "Finish Slot" ]
                 ]
             , div [ class "row" ]
                 [ label [ for "templateNameField", style [ ( "margin-right", "5px" ) ] ] [ text "Name" ]
-                , input [ id "templateNameField", placeholder "Slaven", onInput ChangeTemplateNameField, style [ ( "margin-right", "5px" ) ] ] []
+                , input [ id "templateNameField", placeholder "Slaven", TemplateName >> ChangeField |> onInput, style [ ( "margin-right", "5px" ) ] ] []
                 , button [ AddTemplate model.inputs.templateName |> onClick ] [ text "Add Template" ]
                 ]
             , table []
@@ -347,16 +365,16 @@ view model =
                     ]
                 ]
                 [ label [ for "nameField", style [ ( "margin-right", "5px" ) ] ] [ text "Name" ]
-                , input [ id "nameField", placeholder "Tomislav", onInput ChangeNameField, style [ ( "margin-right", "5px" ) ] ] []
+                , input [ id "nameField", placeholder "Tomislav", Name >> ChangeField |> onInput, style [ ( "margin-right", "5px" ) ] ] []
                 , label [ for "minutesField", style [ ( "margin-right", "5px" ) ] ] [ text "Minutes" ]
-                , input [ id "minutesField", type_ "number", placeholder "1", onInput ChangeMinutesField, style [ ( "margin-right", "5px" ) ] ] []
+                , input [ id "minutesField", type_ "number", placeholder "1", Minutes >> ChangeField |> onInput, style [ ( "margin-right", "5px" ) ] ] []
                 , label [ for "secondsField", style [ ( "margin-right", "5px" ) ] ] [ text "Seconds" ]
-                , input [ id "secondsField", type_ "number", placeholder "0", onInput ChangeSecondsField, style [ ( "margin-right", "5px" ) ] ] []
+                , input [ id "secondsField", type_ "number", placeholder "0", Seconds >> ChangeField |> onInput, style [ ( "margin-right", "5px" ) ] ] []
                 , button
                     [ onClick
                         (case deserializeTime model.inputs.minutes model.inputs.seconds of
                             Just time ->
-                                AddEntry model.inputs.name time
+                                ChangeEntry (Add model.inputs.name time)
 
                             Nothing ->
                                 NoOp
