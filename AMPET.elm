@@ -39,12 +39,17 @@ annoyingTime =
 
 bellSound : String
 bellSound =
-    "sounds/bell.mp3"
+    "bell"
+
+
+singleBellSound : String
+singleBellSound =
+    "singlebell"
 
 
 annoyingSound : String
 annoyingSound =
-    "sounds/annoying.mp3"
+    "annoying"
 
 
 type alias Entry =
@@ -91,7 +96,7 @@ init =
       , lastId = 0
       , timerStarted = False
       , timer = 0
-      , inputs = (Inputs "Tomislav" "1" "0" "Tomislav voli zelje")
+      , inputs = (Inputs "Tomislav" "1" "0" "Slaven")
       }
     , Cmd.none
     )
@@ -186,7 +191,7 @@ update msg model =
             { model | timerStarted = True } ! []
 
         StopTimer ->
-            { model | timerStarted = False } ! []
+            { model | timerStarted = False } ! [ Audio.killSounds () ]
 
         Tick _ ->
             let
@@ -200,7 +205,9 @@ update msg model =
                                 time - Time.second
 
                             cmds =
-                                if newTime == firstBell || newTime == 0 then
+                                if newTime == firstBell then
+                                    [ Audio.playAudio singleBellSound ]
+                                else if newTime == 0 then
                                     [ Audio.playAudio bellSound ]
                                 else if newTime <= annoyingTime then
                                     [ Audio.playAudio annoyingSound ]
@@ -243,15 +250,19 @@ updateEntry msg model =
                 { model | lastId = newId, entries = model.entries ++ [ ( model.lastId, name, time ) ] } ! []
 
         Remove id ->
-            { model | entries = List.filter (\( oid, _, _ ) -> id /= oid) model.entries } ! []
+            { model | entries = List.filter (\( oid, _, _ ) -> id /= oid) model.entries } ! [ Audio.killSounds () ]
 
         Dismiss ->
-            case model.entries of
-                hd :: rest ->
-                    { model | entries = rest } ! []
+            let
+                cmds =
+                    [ Audio.killSounds () ]
+            in
+                case model.entries of
+                    hd :: rest ->
+                        { model | entries = rest } ! cmds
 
-                [] ->
-                    model ! []
+                    [] ->
+                        model ! cmds
 
 
 templateButtonStyle : Attribute a
@@ -343,7 +354,7 @@ view model =
                 ]
             , div [ class "row" ]
                 [ label [ for "templateNameField", style [ ( "margin-right", "5px" ) ] ] [ text "Name" ]
-                , input [ id "templateNameField", placeholder "Slaven", TemplateName >> ChangeField |> onInput, style [ ( "margin-right", "5px" ) ] ] []
+                , input [ id "templateNameField", model.inputs.templateName |> value, TemplateName >> ChangeField |> onInput, style [ ( "margin-right", "5px" ) ] ] []
                 , button [ AddTemplate model.inputs.templateName |> onClick ] [ text "Add Template" ]
                 ]
             , table []
@@ -370,11 +381,11 @@ view model =
                     ]
                 ]
                 [ label [ for "nameField", style [ ( "margin-right", "5px" ) ] ] [ text "Name" ]
-                , input [ id "nameField", placeholder "Tomislav", Name >> ChangeField |> onInput, style [ ( "margin-right", "5px" ) ] ] []
+                , input [ id "nameField", model.inputs.name |> value, Name >> ChangeField |> onInput, style [ ( "margin-right", "5px" ) ] ] []
                 , label [ for "minutesField", style [ ( "margin-right", "5px" ) ] ] [ text "Minutes" ]
-                , input [ id "minutesField", type_ "number", placeholder "1", Minutes >> ChangeField |> onInput, style [ ( "margin-right", "5px" ) ] ] []
+                , input [ id "minutesField", type_ "number", model.inputs.minutes |> value, Minutes >> ChangeField |> onInput, style [ ( "margin-right", "5px" ) ] ] []
                 , label [ for "secondsField", style [ ( "margin-right", "5px" ) ] ] [ text "Seconds" ]
-                , input [ id "secondsField", type_ "number", placeholder "0", Seconds >> ChangeField |> onInput, style [ ( "margin-right", "5px" ) ] ] []
+                , input [ id "secondsField", type_ "number", model.inputs.seconds |> value, Seconds >> ChangeField |> onInput, style [ ( "margin-right", "5px" ) ] ] []
                 , button
                     [ onClick
                         (case deserializeTime model.inputs.minutes model.inputs.seconds of

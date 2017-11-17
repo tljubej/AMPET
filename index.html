@@ -9,6 +9,10 @@
 </head>
 
 <body>
+    <audio id="bell" src="sounds/bell.mp3" preload="auto"></audio>
+    <audio id="annoying" src="sounds/annoying.mp3" preload="auto"></audio>
+    <audio id="singlebell" src="sounds/singlebell.mp3" preload="auto"></audio>
+
     <div style="width: 90%; margin: 0 auto">
         <h1>AVL Meeting Productivity Enhancement Tool</h1>
         <br/>
@@ -20,10 +24,18 @@
     var node = document.getElementById('ampet');
     var app = Elm.AMPET.embed(node);
 
-    app.ports.playAudio.subscribe(function playAudio(audiofile) {
-        var audio = new Audio(audiofile);
+    app.ports.playAudio.subscribe(function playAudio(audioFile) {
+        var audio = document.getElementById(audioFile)
         audio.play();
     });
+
+    app.ports.killSounds.subscribe(function killSounds() {
+        var sounds = document.getElementsByClassName("audio")
+
+        Array.prototype.forEach.call(sounds, element => {
+            element.volume = 0.0;
+        });
+    })
 </script>
 
 </html>
