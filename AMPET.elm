@@ -34,7 +34,7 @@ firstBell =
 
 annoyingTime : Time
 annoyingTime =
-    -10 * Time.second
+    -30 * Time.second
 
 
 bellSound : String
@@ -92,7 +92,15 @@ type Msg
 init : ( Model, Cmd Msg )
 init =
     ( { entries = []
-      , templates = []
+      , templates =
+            [ "Toni"
+            , "Slaven"
+            , "Tomislav"
+            , "Mario"
+            , "Ivica"
+            , "Michael"
+            , "Dietmar"
+            ]
       , lastId = 0
       , timerStarted = False
       , timer = 0
@@ -270,17 +278,38 @@ templateButtonStyle =
     style [ ( "margin-right", "5px" ), ( "width", "100px" ), ( "padding", "0px 0px 0px 0px" ) ]
 
 
-viewTemplate : String -> ( String, Html Msg )
-viewTemplate name =
+templateButtonDisabledStyle : Attribute a
+templateButtonDisabledStyle =
+    style
+        [ ( "margin-right", "5px" )
+        , ( "width", "100px" )
+        , ( "padding", "0px 0px 0px 0px" )
+        , ( "background-color", "LightSteelBlue" )
+        , ( "border", "0.1rem solid LightSteelBlue" )
+        ]
+
+
+viewTemplate : Model -> String -> ( String, Html Msg )
+viewTemplate model name =
     ( name
     , tr []
         [ td [] [ text name ]
-        , td []
-            [ button [ ChangeEntry (Add name Time.minute) |> onClick, templateButtonStyle ] [ text "1 minute" ]
-            , button [ ChangeEntry (Add name (Time.minute * 2)) |> onClick, templateButtonStyle ] [ text "2 minutes" ]
-            , button [ ChangeEntry (Add name (Time.minute * 5)) |> onClick, templateButtonStyle ] [ text "5 minutes" ]
-            , button [ ChangeEntry (Add name (Time.minute * 10)) |> onClick, templateButtonStyle ] [ text "10 minutes" ]
-            ]
+        , td [] <|
+            List.map
+                (\t ->
+                    let
+                        txt =
+                            text <| (toString t) ++ " minute"
+
+                        disabled =
+                            List.any (\( _, otherName, _ ) -> otherName == name) model.entries
+                    in
+                        if disabled then
+                            button [ templateButtonDisabledStyle ] [ txt ]
+                        else
+                            button [ ChangeEntry (Add name <| Time.minute * t) |> onClick, templateButtonStyle ] [ txt ]
+                )
+                [ 0.5, 1, 2, 5, 10 ]
         ]
     )
 
@@ -364,7 +393,7 @@ view model =
                     ]
                 , Keyed.node "tbody"
                     []
-                    (List.map viewTemplate model.templates)
+                    (List.map (viewTemplate model) model.templates)
                 ]
             , div
                 [ class "row"
