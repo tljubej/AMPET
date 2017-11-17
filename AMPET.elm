@@ -41,6 +41,7 @@ bellSound : String
 bellSound =
     "sounds/bell.mp3"
 
+
 annoyingSound : String
 annoyingSound =
     "sounds/annoying.mp3"
@@ -65,11 +66,13 @@ type MsgEntry
     | Remove Id
     | Dismiss
 
+
 type MsgChangeField
     = Name String
     | TemplateName String
     | Minutes String
     | Seconds String
+
 
 type Msg
     = AddTemplate String
@@ -170,7 +173,8 @@ isTimeValid model =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ChangeEntry msgEntry -> updateEntry msgEntry model
+        ChangeEntry msgEntry ->
+            updateEntry msgEntry model
 
         NoOp ->
             model ! []
@@ -208,8 +212,8 @@ update msg model =
                     [] ->
                         newModel ! []
 
-
-        ChangeField msgChangeField -> updateChangeField msgChangeField model
+        ChangeField msgChangeField ->
+            updateChangeField msgChangeField model
 
 
 updateChangeField : MsgChangeField -> Model -> ( Model, Cmd Msg )
@@ -248,6 +252,7 @@ updateEntry msg model =
 
                 [] ->
                     model ! []
+
 
 templateButtonStyle : Attribute a
 templateButtonStyle =
