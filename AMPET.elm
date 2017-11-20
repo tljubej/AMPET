@@ -273,22 +273,6 @@ updateEntry msg model =
                         model ! cmds
 
 
-templateButtonStyle : Attribute a
-templateButtonStyle =
-    style [ ( "margin-right", "5px" ), ( "width", "100px" ), ( "padding", "0px 0px 0px 0px" ) ]
-
-
-templateButtonDisabledStyle : Attribute a
-templateButtonDisabledStyle =
-    style
-        [ ( "margin-right", "5px" )
-        , ( "width", "100px" )
-        , ( "padding", "0px 0px 0px 0px" )
-        , ( "background-color", "LightSteelBlue" )
-        , ( "border", "0.1rem solid LightSteelBlue" )
-        ]
-
-
 viewTemplate : Model -> String -> ( String, Html Msg )
 viewTemplate model name =
     ( name
@@ -305,9 +289,9 @@ viewTemplate model name =
                             List.any (\( _, otherName, _ ) -> otherName == name) model.entries
                     in
                         if disabled then
-                            button [ templateButtonDisabledStyle ] [ txt ]
+                            button [ class "disabledTemplateButton" ] [ txt ]
                         else
-                            button [ ChangeEntry (Add name <| Time.minute * t) |> onClick, templateButtonStyle ] [ txt ]
+                            button [ ChangeEntry (Add name <| Time.minute * t) |> onClick, class "templateButton" ] [ txt ]
                 )
                 [ 0.5, 1, 2, 5, 10 ]
         ]
@@ -376,14 +360,14 @@ view model =
     div [ class "row" ]
         [ div [ class "column" ]
             [ div [ class "row" ]
-                [ button [ onClick StartTimer, style [ ( "margin-right", "5px" ) ] ] [ text "Start Timer" ]
-                , button [ onClick StopTimer, class "button button-outline", style [ ( "margin-right", "15px" ) ] ] [ text "Stop Timer" ]
-                , button [ ChangeEntry Dismiss |> onClick, style [ ( "width", "200px" ) ] ] [ text "Finish Slot" ]
+                [ button [ onClick StartTimer, class "standardButton" ] [ text "Start Timer" ]
+                , button [ onClick StopTimer, class "standardButton", style [ ( "margin-right", "15px" ) ] ] [ text "Stop Timer" ]
+                , button [ ChangeEntry Dismiss |> onClick, class "standardButton" ] [ text "Finish Slot" ]
                 ]
             , div [ class "row" ]
                 [ label [ for "templateNameField", style [ ( "margin-right", "5px" ) ] ] [ text "Name" ]
                 , input [ id "templateNameField", model.inputs.templateName |> value, TemplateName >> ChangeField |> onInput, style [ ( "margin-right", "5px" ) ] ] []
-                , button [ AddTemplate model.inputs.templateName |> onClick ] [ text "Add Template" ]
+                , button [ AddTemplate model.inputs.templateName |> onClick, class "standardButton" ] [ text "Add Template" ]
                 ]
             , table []
                 [ thead []
@@ -398,7 +382,7 @@ view model =
                 [ class "row"
                 , style
                     [ ( "border"
-                      , "1px solid"
+                      , "solid"
                       )
                     , ( "border-color"
                       , if isTimeValid model then
@@ -408,12 +392,12 @@ view model =
                       )
                     ]
                 ]
-                [ label [ for "nameField", style [ ( "margin-right", "5px" ) ] ] [ text "Name" ]
-                , input [ id "nameField", model.inputs.name |> value, Name >> ChangeField |> onInput, style [ ( "margin-right", "5px" ) ] ] []
-                , label [ for "minutesField", style [ ( "margin-right", "5px" ) ] ] [ text "Minutes" ]
-                , input [ id "minutesField", type_ "number", model.inputs.minutes |> value, Minutes >> ChangeField |> onInput, style [ ( "margin-right", "5px" ) ] ] []
-                , label [ for "secondsField", style [ ( "margin-right", "5px" ) ] ] [ text "Seconds" ]
-                , input [ id "secondsField", type_ "number", model.inputs.seconds |> value, Seconds >> ChangeField |> onInput, style [ ( "margin-right", "5px" ) ] ] []
+                [ label [ for "nameField" ] [ text "Name" ]
+                , input [ id "nameField", model.inputs.name |> value, Name >> ChangeField |> onInput ] []
+                , label [ for "minutesField" ] [ text "Minutes" ]
+                , input [ id "minutesField", type_ "number", model.inputs.minutes |> value, Minutes >> ChangeField |> onInput ] []
+                , label [ for "secondsField" ] [ text "Seconds" ]
+                , input [ id "secondsField", type_ "number", model.inputs.seconds |> value, Seconds >> ChangeField |> onInput ] []
                 , button
                     [ onClick
                         (case deserializeTime model.inputs.minutes model.inputs.seconds of
@@ -423,7 +407,7 @@ view model =
                             Nothing ->
                                 NoOp
                         )
-                    , style [ ( "margin-right", "5px" ) ]
+                    , class "standardButton"
                     ]
                     [ text "Add" ]
                 ]
