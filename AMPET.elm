@@ -283,7 +283,14 @@ viewTemplate model name =
                 (\t ->
                     let
                         txt =
-                            text <| (toString t) ++ " minute"
+                            text <|
+                                (if t < 1 then
+                                    "? - "
+                                 else
+                                    ""
+                                )
+                                    ++ (toString t)
+                                    ++ " minute"
 
                         disabled =
                             List.any (\( _, otherName, _ ) -> otherName == name) model.entries
@@ -293,7 +300,7 @@ viewTemplate model name =
                         else
                             button [ ChangeEntry (Add name <| Time.minute * t) |> onClick, class "templateButton" ] [ txt ]
                 )
-                [ 0.5, 1, 2, 5, 10 ]
+                [ 0.5, 1, 2, 3, 5, 8 ]
         ]
     )
 
