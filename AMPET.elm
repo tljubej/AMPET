@@ -93,7 +93,8 @@ init : ( Model, Cmd Msg )
 init =
     ( { entries = []
       , templates =
-            [ "Toni"
+            [ "General Discussion"
+            , "Toni"
             , "Slaven"
             , "Tomislav"
             , "Mario"
